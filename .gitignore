@@ -1,0 +1,13 @@
+# Dataset (NO se sube): se monta como volumen
+*.csv
+data/*
+!data/.gitkeep
+# Secretos
+.env
+# Python / SO
+__pycache__/
+*.pyc
+.venv/
+# Cache local del tarball de Hadoop (opcional)
+hadoop/cache/*
+!hadoop/cache/.gitkeep

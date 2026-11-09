@@ -1,0 +1,64 @@
+# Pipeline DataMart: hadoop (MapReduce) -> db (PostgreSQL) -> api (Flask)
+services:
+  hadoop:
+    build:
+      context: ./hadoop
+      dockerfile: Dockerfile
+    image: datamart-hadoop:3.3.6
+    container_name: datamart-hadoop
+    hostname: hadoop
+    volumes:
+      - ./data:/data/input:ro            # dataset: solo lectura (A2)
+      - ./mapreduce:/opt/mapreduce:ro    # mapper/reducer editables sin reconstruir
+      - mr_output:/data/output           # salida del job (la lee la API/cargador)
+      - ssh_keys:/keys                   # llaves SSH generadas en el arranque
+    networks: [datamart_net]
+    healthcheck:
+      test: ["CMD-SHELL", "test -f /keys/id_ed25519.pub && pgrep -x sshd >/dev/null"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  db:
+    image: postgres:16-alpine
+    container_name: datamart-db
+    env_file: .env                       # POSTGRES_DB / USER / PASSWORD
+    volumes:
+      - pgdata:/var/lib/postgresql/data  # volumen nombrado = persistencia
+    networks: [datamart_net]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  api:
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+    image: datamart-api:1.0
+    container_name: datamart-api
+    env_file: .env
+    environment:
+      DB_HOST: db                        # se resuelve por nombre de servicio
+      DB_PORT: "5432"
+    ports:
+      - "${API_PORT:-5000}:5000"
+    volumes:
+      - mr_output:/data/output:ro        # part-00000 del job
+      - ssh_keys:/keys:ro                # llave para ssh hadoop@hadoop
+    depends_on:
+      db:
+        condition: service_healthy
+      hadoop:
+        condition: service_healthy
+    networks: [datamart_net]
+
+networks:
+  datamart_net:
+    driver: bridge
+
+volumes:
+  pgdata:
+  mr_output:
+  ssh_keys:
