@@ -110,6 +110,41 @@ Referencia calculada fuera de Docker sobre el CSV real (5 000 000 filas):
 | Persistencia tras `down`/`up` | [evidencias/persistencia.txt](evidencias/persistencia.txt) |
 | Efecto de `down -v` (tabla vacía, recarga) | [evidencias/down_v.txt](evidencias/down_v.txt) |
 
+### Capturas (terminal de Ubuntu)
+
+Capturas con aspecto de GNOME Terminal generadas por [`scripts/capturas_ubuntu.py`](scripts/capturas_ubuntu.py) a partir de la salida **real** de cada comando (no son maquetas con texto inventado; se pueden regenerar con el stack arriba y `google-chrome`/`chromium` instalado).
+
+**`docker compose ps`** — tres servicios sanos
+![compose ps](evidencias/capturas/01_docker_compose_ps.png)
+
+**`hadoop version`** (A1)
+![hadoop version](evidencias/capturas/02_hadoop_version.png)
+
+**SSH sin contraseña**: `ssh localhost` y `api → hadoop` (B)
+![ssh](evidencias/capturas/03_ssh_sin_password.png)
+
+**Job Hadoop Streaming** (C1) y su **salida `part-00000`**
+![job](evidencias/capturas/04_job_mapreduce.png)
+![salida](evidencias/capturas/05_salida_job_part-00000.png)
+
+**Comparativa de tiempos y verificación de igualdad** (C2)
+![tiempos](evidencias/capturas/06_comparativa_tiempos.png)
+
+**Mapper ante líneas malformadas** (C1)
+![mapper](evidencias/capturas/07_mapper_malformadas.png)
+
+**API: GET y filtro por clave** (D)
+![api get](evidencias/capturas/08_api_get.png)
+
+**API: POST / PUT / DELETE** (D)
+![api crud](evidencias/capturas/09_api_crud_escritura.png)
+
+**Persistencia tras `down` / `up`** (D)
+![persistencia](evidencias/capturas/10_persistencia.png)
+
+**Efecto de `down -v`**
+![down -v](evidencias/capturas/11_down_v.png)
+
 Tiempos medidos con `time` (columna *real*), ambos **dentro del contenedor `hadoop`**, sobre el mismo CSV (5 000 001 líneas, 352 MB):
 
 | Método | Tiempo (`real`) | Resultado |
