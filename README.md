@@ -4,7 +4,7 @@
 **Matrícula:** `125053685`  (último dígito **5**)
 **Pregunta de negocio asignada (dígitos 4 o 5):** *Unidades vendidas por **método de pago** y **día de la semana**.*
 
-> Estado: infraestructura, código y teoría entregados. Las secciones marcadas **PENDIENTE** (tiempos medidos dentro del contenedor, capturas y salidas) se completan al terminar la ejecución del stack.
+> Estado: completo y probado desde cero (`docker compose down -v && docker compose up --build`). Las evidencias (logs de terminal) están en [`evidencias/`](evidencias/).
 
 ## 1. Arquitectura
 
@@ -49,11 +49,11 @@ docker compose exec -u hadoop hadoop ssh localhost hostname
 docker compose exec api ssh hadoop hostname            # api -> hadoop por nombre de servicio
 
 # 4. Job MapReduce (Hadoop Streaming)
-docker compose exec -u hadoop hadoop bash -c 'time ./run_job.sh'
+docker compose exec -u hadoop hadoop bash -c 'time /opt/mapreduce/run_job.sh'
 docker compose exec -u hadoop hadoop cat /data/output/resultado/part-00000
 
 # 5. Comparativa secuencial + verificación de igualdad
-docker compose exec -u hadoop hadoop bash -c 'time python3 secuencial.py /data/input/ventas_125053685.csv /tmp/seq.txt'
+docker compose exec -u hadoop hadoop bash -c 'time python3 /opt/mapreduce/secuencial.py /data/input/ventas_125053685.csv /tmp/seq.txt'
 docker compose exec -u hadoop hadoop diff /tmp/seq.txt /data/output/resultado/part-00000 && echo IGUALES
 
 # 6. Cargar a PostgreSQL y consultar la API
@@ -97,21 +97,30 @@ Referencia calculada fuera de Docker sobre el CSV real (5 000 000 filas):
 
 ## 5. Evidencias y tiempos (C2)
 
-| Evidencia | Estado |
+| Evidencia | Archivo |
 |---|---|
-| `hadoop version` | **PENDIENTE** (`evidencias/hadoop_version.txt`) |
-| `ssh localhost` y `ssh hadoop@hadoop` desde `api` | **PENDIENTE** (`evidencias/ssh.txt`) |
-| Salida del job (`part-00000`) | **PENDIENTE** (`evidencias/job_output.txt`) |
-| Respuesta de la API | **PENDIENTE** (`evidencias/api.txt`) |
-| Persistencia tras `down`/`up` | **PENDIENTE** (`evidencias/persistencia.txt`) |
+| `hadoop version` (Hadoop 3.3.6) | [evidencias/hadoop_version.txt](evidencias/hadoop_version.txt) |
+| `ssh localhost` y `ssh hadoop@hadoop` desde `api`, sin contraseña | [evidencias/ssh.txt](evidencias/ssh.txt) |
+| Log completo del job (counters, tiempo) | [evidencias/job_log.txt](evidencias/job_log.txt) |
+| Salida del job (`part-00000`, 28 líneas) | [evidencias/job_output.txt](evidencias/job_output.txt) |
+| Mapper con encabezado y líneas malformadas (no truncan el job) | [evidencias/mapper_malformadas.txt](evidencias/mapper_malformadas.txt) |
+| Comparación secuencial vs Hadoop (`diff` → *RESULTADOS IGUALES*) | [evidencias/comparacion.txt](evidencias/comparacion.txt), [secuencial_log.txt](evidencias/secuencial_log.txt) |
+| Carga a PostgreSQL | [evidencias/carga.txt](evidencias/carga.txt) |
+| Respuestas de la API (GET, GET por clave, POST, PUT, DELETE) | [evidencias/api.txt](evidencias/api.txt) |
+| Persistencia tras `down`/`up` | [evidencias/persistencia.txt](evidencias/persistencia.txt) |
+| Efecto de `down -v` (tabla vacía, recarga) | [evidencias/down_v.txt](evidencias/down_v.txt) |
 
-| Método | Tiempo (`time real`) | Resultado |
+Tiempos medidos con `time` (columna *real*), ambos **dentro del contenedor `hadoop`**, sobre el mismo CSV (5 000 001 líneas, 352 MB):
+
+| Método | Tiempo (`real`) | Resultado |
 |---|---|---|
-| Hadoop Streaming (local, standalone) | **PENDIENTE** | **PENDIENTE** |
-| Script secuencial (en contenedor) | **PENDIENTE** | **PENDIENTE** |
-| Referencia en host (Python 3.14, sin Docker) | 4.7 s | 32 506 687 unidades |
+| Hadoop Streaming (local, standalone, 4 mappers en paralelo, combiner) | **10.6 s** | 28 llaves, 32 506 687 unidades |
+| Script secuencial (línea a línea) | **5.1 s** | idéntico (`diff` sin diferencias) |
+| Referencia en host (Python 3.14, sin Docker) | 4.7 s | idéntico |
 
-**Explicación (se ajusta con los tiempos reales):** en modo standalone, Hadoop corre el job en una sola JVM con el *LocalJobRunner*, sin HDFS ni varios nodos. Para 350–400 MB el costo fijo de Hadoop (arrancar la JVM, empaquetar y localizar el job, lanzar un proceso Python por cada split, serializar por *pipes* stdin/stdout, ordenar/«shufflear» y escribir archivos intermedios) supera con mucho el trabajo útil, mientras que el script secuencial lee el archivo una vez, de forma lineal, y acumula en un diccionario de solo 28 llaves en memoria. Por eso el secuencial es más rápido en este escenario; MapReduce solo compensa cuando los datos exceden la memoria/disco de una máquina y se reparten entre muchos nodos con HDFS.
+Counters relevantes del job: `Map input records=5000001`, `Combine output records=308`, `Reduce input records=308`, `Reduce output records=28`, `encabezado_ignorado=1`. El combiner reduce 5 M de registros a 308 antes del *shuffle*.
+
+**Explicación:** el script secuencial (5.1 s) resultó ~2× más rápido que Hadoop (10.6 s). En modo standalone, Hadoop corre el job en una sola JVM con el *LocalJobRunner*, sin HDFS ni varios nodos. Para 350–400 MB el costo fijo de Hadoop (arrancar la JVM, empaquetar y localizar el job, lanzar un proceso Python por cada split, serializar por *pipes* stdin/stdout, ordenar/«shufflear» y escribir archivos intermedios) supera con mucho el trabajo útil, mientras que el script secuencial lee el archivo una vez, de forma lineal, y acumula en un diccionario de solo 28 llaves en memoria. Por eso el secuencial es más rápido en este escenario; MapReduce solo compensa cuando los datos exceden la memoria/disco de una máquina y se reparten entre muchos nodos con HDFS.
 
 ## 6. Teoría (Parte E)
 
@@ -134,6 +143,7 @@ Referencia calculada fuera de Docker sobre el CSV real (5 000 000 filas):
 
 ## 8. Seguridad / penalizaciones evitadas
 
+* La API publica su puerto solo en `127.0.0.1` del host. No implementa autenticación en POST/PUT/DELETE porque el examen no lo pide (es un ambiente de laboratorio); en producción se añadiría una API key o token. La llave SSH se monta en `api` en solo lectura porque la Parte B exige `ssh hadoop@hadoop` desde ese contenedor.
 * El CSV **no** está en el repo (`*.csv`, `data/*` en `.gitignore`).
 * No hay credenciales en el repo: `.env` está ignorado y `.env.example` solo trae un marcador. No hay contraseñas en ningún Dockerfile.
 * Reproducible con `docker compose up --build` (tras `cp .env.example .env`).

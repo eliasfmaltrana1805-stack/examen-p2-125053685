@@ -9,9 +9,9 @@ CSV=/data/input/ventas_${MATRICULA}.csv
 $H hadoop version                                         | tee $E/hadoop_version.txt
 { $H ssh localhost 'echo "ssh localhost OK en $(hostname)"'
   docker compose exec -T api ssh hadoop 'echo "api -> hadoop OK en $(hostname)"'; } 2>&1 | tee $E/ssh.txt
-{ time $H ./run_job.sh; } 2>&1 | tee $E/job_log.txt
+{ time $H /opt/mapreduce/run_job.sh; } 2>&1 | tee $E/job_log.txt
 $H cat /data/output/resultado/part-00000                  | tee $E/job_output.txt
-{ time $H python3 secuencial.py $CSV /tmp/seq.txt; } 2>&1 | tee $E/secuencial_log.txt
+{ time $H python3 /opt/mapreduce/secuencial.py $CSV /tmp/seq.txt; } 2>&1 | tee $E/secuencial_log.txt
 $H diff /tmp/seq.txt /data/output/resultado/part-00000 && echo "RESULTADOS IGUALES" | tee $E/comparacion.txt
 docker compose exec -T api python scripts/cargar_resultados.py | tee $E/carga.txt
 P=${API_PORT:-5000}

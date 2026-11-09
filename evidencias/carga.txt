@@ -1,0 +1,1 @@
+28 registros cargados desde /data/output/resultado/part-00000

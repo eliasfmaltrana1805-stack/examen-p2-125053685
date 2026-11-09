@@ -1,0 +1,8 @@
+# Mapper con encabezado, linea basura, fecha mala, cantidad no numerica y linea vacia:
+reporter:counter:Mapper,encabezado_ignorado,1
+reporter:counter:Mapper,lineas_malformadas,1
+reporter:counter:Mapper,lineas_malformadas,1
+reporter:counter:Mapper,lineas_malformadas,1
+reporter:counter:Mapper,lineas_malformadas,1
+Efectivo|1|Lunes	3
+Tarjeta|2|Martes	2
