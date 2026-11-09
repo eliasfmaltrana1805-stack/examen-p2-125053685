@@ -37,7 +37,8 @@
 # 0. Dataset (semilla = matrícula). Queda fuera de git (*.csv en .gitignore)
 cd data && python3 ../scripts/generar_dataset.py 125053685 && cd ..
 
-# 1. Variables de entorno (la contraseña real NO se versiona)
+# 1. (Opcional) Variables de entorno propias. Sin .env el compose usa valores por defecto
+#    de laboratorio (datamart / datamart_demo). La contraseña real NO se versiona.
 cp .env.example .env        # edita POSTGRES_PASSWORD
 
 # 2. Levantar TODO con un comando
@@ -180,5 +181,6 @@ Counters relevantes del job: `Map input records=5000001`, `Combine output record
 
 * La API publica su puerto solo en `127.0.0.1` del host. No implementa autenticación en POST/PUT/DELETE porque el examen no lo pide (es un ambiente de laboratorio); en producción se añadiría una API key o token. La llave SSH se monta en `api` en solo lectura porque la Parte B exige `ssh hadoop@hadoop` desde ese contenedor.
 * El CSV **no** está en el repo (`*.csv`, `data/*` en `.gitignore`).
-* No hay credenciales en el repo: `.env` está ignorado y `.env.example` solo trae un marcador. No hay contraseñas en ningún Dockerfile.
-* Reproducible con `docker compose up --build` (tras `cp .env.example .env`).
+* `.env` está ignorado por git. El compose trae valores por defecto de **laboratorio** (`datamart_demo`) para que `docker compose up --build` funcione en un clon limpio sin `.env`; para un uso real se define `.env` con una contraseña propia. No hay contraseñas en ningún Dockerfile.
+* Reproducible con `docker compose up --build`, probado desde cero y sin `.env` (3 arranques limpios seguidos + job + carga + API + SSH).
+* La API crea su tabla con un *advisory lock* de PostgreSQL: los 2 workers de gunicorn arrancan a la vez y, sin el lock, chocaban en un `CREATE TABLE` con la base vacía. Además `api` tiene `restart: on-failure`.

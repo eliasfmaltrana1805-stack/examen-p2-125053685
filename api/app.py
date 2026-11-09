@@ -55,6 +55,9 @@ def consulta(sql, params=(), uno=False, commit=False):
 def iniciar_tabla():
     con = conectar()
     with con, con.cursor() as cur:
+        # Los 2 workers de gunicorn arrancan a la vez: el lock serializa el CREATE TABLE
+        # (sin el, con la BD vacia ambos chocan con UniqueViolation en pg_class).
+        cur.execute("SELECT pg_advisory_xact_lock(42)")
         cur.execute(DDL)
     con.close()
 

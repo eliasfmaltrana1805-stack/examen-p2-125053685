@@ -22,7 +22,12 @@ services:
   db:
     image: postgres:16-alpine
     container_name: datamart-db
-    env_file: .env                       # POSTGRES_DB / USER / PASSWORD
+    # Variables desde .env (si existe) o, en su defecto, valores por defecto de laboratorio.
+    # Para uso real crea .env a partir de .env.example con una contraseña propia.
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-datamart}
+      POSTGRES_USER: ${POSTGRES_USER:-datamart}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-datamart_demo}
     volumes:
       - pgdata:/var/lib/postgresql/data  # volumen nombrado = persistencia
     networks: [datamart_net]
@@ -38,8 +43,11 @@ services:
       dockerfile: api/Dockerfile
     image: datamart-api:1.0
     container_name: datamart-api
-    env_file: .env
+    restart: on-failure
     environment:
+      POSTGRES_DB: ${POSTGRES_DB:-datamart}
+      POSTGRES_USER: ${POSTGRES_USER:-datamart}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-datamart_demo}
       DB_HOST: db                        # se resuelve por nombre de servicio
       DB_PORT: "5432"
     ports:

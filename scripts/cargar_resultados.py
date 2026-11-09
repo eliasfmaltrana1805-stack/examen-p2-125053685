@@ -45,6 +45,7 @@ def main():
                            dbname=os.environ["POSTGRES_DB"], user=os.environ["POSTGRES_USER"],
                            password=os.environ["POSTGRES_PASSWORD"])
     with con, con.cursor() as cur:
+        cur.execute("SELECT pg_advisory_xact_lock(42)")   # mismo lock que la API
         cur.execute(DDL)
         cur.execute("TRUNCATE resultados RESTART IDENTITY")
         execute_values(cur, "INSERT INTO resultados (metodo_pago, dia_num, dia_semana, unidades_vendidas) VALUES %s", filas)
