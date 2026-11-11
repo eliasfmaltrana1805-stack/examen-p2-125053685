@@ -5,7 +5,7 @@ import time
 
 import psycopg2
 import psycopg2.extras
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_from_directory
 
 app = Flask(__name__)
 app.json.ensure_ascii = False
@@ -66,6 +66,12 @@ iniciar_tabla()
 
 
 @app.get("/")
+def interfaz():
+    """Interfaz web (HTML estatico que consume los mismos endpoints JSON)."""
+    return send_from_directory(os.path.join(os.path.dirname(os.path.abspath(__file__)), "static"), "index.html")
+
+
+@app.get("/api")
 def raiz():
     return jsonify(servicio="DataMart API", pregunta="Unidades vendidas por método de pago y día de la semana",
                    endpoints=["GET /resultados", "GET /resultados/<metodo_pago>[?dia=1..7]",

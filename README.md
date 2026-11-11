@@ -74,6 +74,8 @@ docker compose down && docker compose up -d && curl localhost:5000/resultados   
 docker compose down -v                                                         # borra volúmenes (datos perdidos)
 ```
 
+La interfaz web está en `http://localhost:5000/` y el índice JSON de endpoints en `http://localhost:5000/api`.
+
 Cambiar el puerto de la API: editar `API_PORT` en `.env` y ejecutar `docker compose up -d`.
 
 **Nota sobre la descarga de Hadoop:** el Dockerfile descarga el tarball oficial de `archive.apache.org` y verifica su SHA-512. Si existe `hadoop/cache/hadoop-3.3.6.tar.gz` lo usa (build rápido/offline) y aun así valida el checksum oficial.
@@ -114,6 +116,9 @@ Referencia calculada fuera de Docker sobre el CSV real (5 000 000 filas):
 ### Capturas (terminal de Ubuntu)
 
 Capturas con aspecto de GNOME Terminal generadas por [`scripts/capturas_ubuntu.py`](scripts/capturas_ubuntu.py) a partir de la salida **real** de cada comando (no son maquetas con texto inventado; se pueden regenerar con el stack arriba y `google-chrome`/`chromium` instalado).
+
+**Interfaz web** (`http://localhost:5000/`): KPIs, mapa de calor método × día, totales, filtro por método (usa `GET /resultados/<clave>`) y alta/edición/borrado (POST/PUT/DELETE). Se sirve desde la propia API, sin librerías externas.
+![interfaz](evidencias/capturas/12_interfaz_web.png)
 
 **`docker compose ps`** — tres servicios sanos
 ![compose ps](evidencias/capturas/01_docker_compose_ps.png)

@@ -9,6 +9,7 @@ COPY api/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY api/app.py api/entrypoint.sh ./
+COPY api/static static/
 COPY scripts/cargar_resultados.py scripts/
 RUN chmod +x entrypoint.sh
 
