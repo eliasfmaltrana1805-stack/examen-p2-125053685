@@ -11,3 +11,6 @@ __pycache__/
 # Cache local del tarball de Hadoop (opcional)
 hadoop/cache/*
 !hadoop/cache/.gitkeep
+
+# Clon anidado accidental (no es parte del proyecto)
+/examen-p2-125053685/
